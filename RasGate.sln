@@ -1,0 +1,59 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RasGate.Web", "src\RasGate.Web\RasGate.Web.csproj", "{655FE874-AF0C-4467-99EA-894A9FADD177}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RasGate.Contracts", "src\RasGate.Contracts\RasGate.Contracts.csproj", "{45BCEF02-EE58-466F-9153-7ABCAE49107E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RasGate.Application", "src\RasGate.Application\RasGate.Application.csproj", "{0E3C8FD6-487F-4DD6-96A3-E62CBDC275D6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RasGate.Infrastructure", "src\RasGate.Infrastructure\RasGate.Infrastructure.csproj", "{F827A942-7588-4F6D-AE3C-9BCB65671ED9}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{675E82CD-9BB7-43B9-A3D9-0C9E61790617}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RasGate.FakeRac", "tests\RasGate.FakeRac\RasGate.FakeRac.csproj", "{589CEE0E-C619-4FF1-ACBC-2D939F5470E9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RasGate.UnitTests", "tests\RasGate.UnitTests\RasGate.UnitTests.csproj", "{F5D2FE28-FF4B-4BCB-B468-96FDDAD97FDE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RasGate.IntegrationTests", "tests\RasGate.IntegrationTests\RasGate.IntegrationTests.csproj", "{D2199F38-BD12-4093-BA9A-BE7D5B302BC0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{655FE874-AF0C-4467-99EA-894A9FADD177}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{655FE874-AF0C-4467-99EA-894A9FADD177}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{655FE874-AF0C-4467-99EA-894A9FADD177}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{655FE874-AF0C-4467-99EA-894A9FADD177}.Release|Any CPU.Build.0 = Release|Any CPU
+		{45BCEF02-EE58-466F-9153-7ABCAE49107E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{45BCEF02-EE58-466F-9153-7ABCAE49107E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{45BCEF02-EE58-466F-9153-7ABCAE49107E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{45BCEF02-EE58-466F-9153-7ABCAE49107E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0E3C8FD6-487F-4DD6-96A3-E62CBDC275D6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0E3C8FD6-487F-4DD6-96A3-E62CBDC275D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0E3C8FD6-487F-4DD6-96A3-E62CBDC275D6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0E3C8FD6-487F-4DD6-96A3-E62CBDC275D6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F827A942-7588-4F6D-AE3C-9BCB65671ED9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F827A942-7588-4F6D-AE3C-9BCB65671ED9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F827A942-7588-4F6D-AE3C-9BCB65671ED9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F827A942-7588-4F6D-AE3C-9BCB65671ED9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{589CEE0E-C619-4FF1-ACBC-2D939F5470E9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{589CEE0E-C619-4FF1-ACBC-2D939F5470E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{589CEE0E-C619-4FF1-ACBC-2D939F5470E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{589CEE0E-C619-4FF1-ACBC-2D939F5470E9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F5D2FE28-FF4B-4BCB-B468-96FDDAD97FDE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F5D2FE28-FF4B-4BCB-B468-96FDDAD97FDE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F5D2FE28-FF4B-4BCB-B468-96FDDAD97FDE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F5D2FE28-FF4B-4BCB-B468-96FDDAD97FDE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D2199F38-BD12-4093-BA9A-BE7D5B302BC0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D2199F38-BD12-4093-BA9A-BE7D5B302BC0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D2199F38-BD12-4093-BA9A-BE7D5B302BC0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D2199F38-BD12-4093-BA9A-BE7D5B302BC0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{589CEE0E-C619-4FF1-ACBC-2D939F5470E9} = {675E82CD-9BB7-43B9-A3D9-0C9E61790617}
+		{F5D2FE28-FF4B-4BCB-B468-96FDDAD97FDE} = {675E82CD-9BB7-43B9-A3D9-0C9E61790617}
+		{D2199F38-BD12-4093-BA9A-BE7D5B302BC0} = {675E82CD-9BB7-43B9-A3D9-0C9E61790617}
+	EndGlobalSection
+EndGlobal
