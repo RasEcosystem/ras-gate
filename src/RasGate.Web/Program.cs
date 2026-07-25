@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using RasGate.Contracts.Common;
@@ -15,6 +16,8 @@ public class Program
 {
     public static void Main(string[] args)
     {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
         var builder = WebApplication.CreateBuilder(args);
 
         builder.Host.UseSerilog((context, services, configuration) =>
@@ -202,11 +205,7 @@ internal static class ApplicationConfigurationExtensions
             app.UseSwaggerUI();
         }
 
-        app.UseHttpsRedirection();
-
         app.UseAuthorization();
-
-        app.UseStaticFiles();
 
         app.MapControllers();
     }

@@ -35,6 +35,12 @@ public class RacController(IRacExecutor racExecutor) : ControllerBase
     [ProducesResponseType(
         typeof(OpenApiErrorResponse),
         StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(
+        typeof(OpenApiErrorResponse),
+        StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(
+        typeof(OpenApiErrorResponse),
+        StatusCodes.Status503ServiceUnavailable)]
     public async Task<ApiResponse<ExecuteRacResponse>> Execute(
         [FromBody] ExecuteRacRequest request,
         CancellationToken cancellationToken)

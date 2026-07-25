@@ -24,6 +24,9 @@
         <ProjectReference Include="..\..\src\RasGate.Application\RasGate.Application.csproj"/>
         <ProjectReference Include="..\..\src\RasGate.Infrastructure\RasGate.Infrastructure.csproj"/>
         <ProjectReference Include="..\..\src\RasGate.Web\RasGate.Web.csproj"/>
+
+        <ProjectReference Include="..\RasGate.FakeRac\RasGate.FakeRac.csproj"
+                          ReferenceOutputAssembly="false"/>
     </ItemGroup>
 
 </Project>

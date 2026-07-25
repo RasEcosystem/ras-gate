@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Text;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RasGate.Application.Rac;
@@ -112,13 +113,19 @@ public sealed class RacExecutor : IRacExecutor, IDisposable
         IReadOnlyList<string> arguments,
         CancellationToken cancellationToken)
     {
+        var outputEncoding = OperatingSystem.IsWindows()
+            ? Encoding.GetEncoding(866)
+            : Encoding.UTF8;
+
         var startInfo = new ProcessStartInfo
         {
             FileName = _options.ExecutablePath,
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
-            CreateNoWindow = true
+            CreateNoWindow = true,
+            StandardOutputEncoding = outputEncoding,
+            StandardErrorEncoding = outputEncoding
         };
 
         foreach (var argument in arguments)

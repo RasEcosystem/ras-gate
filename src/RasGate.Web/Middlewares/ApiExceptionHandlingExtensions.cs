@@ -69,8 +69,10 @@ public static class ApiExceptionHandlingExtensions
                         traceId);
                 else
                     logger.LogWarning(
-                        exception,
-                        "Request failed. TraceId: {TraceId}",
+                        "Request failed with {ExceptionType}: {Message}. " +
+                        "TraceId: {TraceId}",
+                        exception.GetType().Name,
+                        exception.Message,
                         traceId);
 
                 context.Response.StatusCode =

@@ -50,7 +50,17 @@ public sealed class RacExecutorTests
             ? "RasGate.FakeRac.exe"
             : "RasGate.FakeRac";
 
-        return Path.GetFullPath(
+        var configuration = new DirectoryInfo(
+                AppContext.BaseDirectory)
+            .Parent?
+            .Name;
+
+        if (string.IsNullOrWhiteSpace(configuration))
+            throw new InvalidOperationException(
+                $"Could not determine build configuration from " +
+                $"'{AppContext.BaseDirectory}'.");
+
+        var path = Path.GetFullPath(
             Path.Combine(
                 AppContext.BaseDirectory,
                 "..",
@@ -59,9 +69,16 @@ public sealed class RacExecutorTests
                 "..",
                 "RasGate.FakeRac",
                 "bin",
-                "Debug",
+                configuration,
                 "net10.0",
                 fileName));
+
+        if (!File.Exists(path))
+            throw new FileNotFoundException(
+                $"Fake RAC executable was not found: {path}",
+                path);
+
+        return path;
     }
 
     [Fact]
