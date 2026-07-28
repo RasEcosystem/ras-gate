@@ -1,11 +1,15 @@
 using System.Net;
 using System.Text;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
+using Microsoft.OpenApi;
 using RasGate.Contracts.Common;
 using RasGate.Infrastructure;
 using RasGate.Web.Api;
 using RasGate.Web.Api.Filters;
+using RasGate.Web.Api.OpenApi;
+using RasGate.Web.Authentication;
 using RasGate.Web.Middlewares;
 using Serilog;
 using Serilog.Events;
@@ -28,10 +32,36 @@ public class Program
                 .Enrich.FromLogContext();
         });
 
+        builder.Services
+            .AddAuthentication(ApiKeyAuthenticationDefaults.Scheme)
+            .AddScheme<
+                AuthenticationSchemeOptions,
+                ApiKeyAuthenticationHandler>(
+                ApiKeyAuthenticationDefaults.Scheme,
+                _ => { });
+
+        builder.Services.AddAuthorization();
+
         builder.Services.ConfigureApi();
         builder.Services.AddOpenApi();
-        builder.Services.AddSwaggerGen();
+        builder.Services.AddSwaggerGen(options =>
+        {
+            options.AddSecurityDefinition(
+                ApiKeyAuthenticationDefaults.Scheme,
+                new OpenApiSecurityScheme
+                {
+                    Type = SecuritySchemeType.ApiKey,
+                    Name = ApiKeyAuthenticationDefaults.HeaderName,
+                    In = ParameterLocation.Header,
+                    Description =
+                        "API key required by protected endpoints."
+                });
 
+            options.OperationFilter<
+                ApiKeySecurityOperationFilter>();
+        });
+
+        builder.Services.AddRasGateOptions(builder.Configuration);
         builder.Services.AddRac(builder.Configuration);
 
         var app = builder.Build();
@@ -205,6 +235,7 @@ internal static class ApplicationConfigurationExtensions
             app.UseSwaggerUI();
         }
 
+        app.UseAuthentication();
         app.UseAuthorization();
 
         app.MapControllers();

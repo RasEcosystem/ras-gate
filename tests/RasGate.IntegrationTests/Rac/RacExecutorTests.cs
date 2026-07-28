@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using RasGate.Application.Rac.Exceptions;
@@ -27,7 +28,8 @@ public sealed class RacExecutorTests
     private static RacExecutor CreateExecutor(
         int timeoutSeconds = 5,
         int maxConcurrentProcesses = 2,
-        string? executablePath = null)
+        string? executablePath = null,
+        int maxOutputBytes = 4194304)
     {
         var options = Options.Create(
             new RacOptions
@@ -36,7 +38,8 @@ public sealed class RacExecutorTests
                     executablePath ?? GetFakeRacPath(),
                 TimeoutSeconds = timeoutSeconds,
                 MaxConcurrentProcesses =
-                    maxConcurrentProcesses
+                    maxConcurrentProcesses,
+                MaxOutputBytes = maxOutputBytes
             });
 
         return new RacExecutor(
@@ -113,6 +116,76 @@ public sealed class RacExecutorTests
             "simulated failure",
             result.StandardError.Trim());
         Assert.False(result.TimedOut);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_OutputAtLimit_ReturnsFullOutput()
+    {
+        const int maxOutputBytes = 1024;
+
+        using var executor = CreateExecutor(
+            maxOutputBytes: maxOutputBytes);
+
+        var result = await executor.ExecuteAsync(
+            ["__test", "large-output", maxOutputBytes.ToString()],
+            CancellationToken.None);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(
+            new string('X', maxOutputBytes),
+            result.StandardOutput);
+        Assert.Empty(result.StandardError);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_OutputExceedsLimit_ThrowsImmediately()
+    {
+        const int maxOutputBytes = 1024;
+
+        using var executor = CreateExecutor(
+            10,
+            maxOutputBytes: maxOutputBytes);
+
+        var stopwatch = Stopwatch.StartNew();
+
+        var exception =
+            await Assert.ThrowsAsync<RacOutputLimitExceededException>(() => executor.ExecuteAsync(
+                ["__test", "large-output", "1048576"],
+                CancellationToken.None));
+
+        stopwatch.Stop();
+
+        Assert.Equal(
+            $"RAC output exceeded the configured limit of " +
+            $"{maxOutputBytes} bytes.",
+            exception.Message);
+
+        Assert.True(
+            stopwatch.Elapsed < TimeSpan.FromSeconds(5),
+            $"Output limit was detected after {stopwatch.Elapsed}.");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_StandardErrorExceedsLimit_Throws()
+    {
+        const int maxOutputBytes = 1024;
+
+        using var executor = CreateExecutor(
+            maxOutputBytes: maxOutputBytes);
+
+        var exception =
+            await Assert.ThrowsAsync<RacOutputLimitExceededException>(() => executor.ExecuteAsync(
+                [
+                    "__test",
+                    "stderr",
+                    new string('X', maxOutputBytes + 1)
+                ],
+                CancellationToken.None));
+
+        Assert.Equal(
+            $"RAC output exceeded the configured limit of " +
+            $"{maxOutputBytes} bytes.",
+            exception.Message);
     }
 
     [Fact]

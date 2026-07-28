@@ -4,6 +4,9 @@ ARG BUILD_CONFIGURATION=Release
 
 WORKDIR /src
 
+COPY ["Directory.Build.props", "."]
+COPY ["version.json", "."]
+
 COPY ["src/RasGate.Web/RasGate.Web.csproj", "src/RasGate.Web/"]
 COPY ["src/RasGate.Application/RasGate.Application.csproj", "src/RasGate.Application/"]
 COPY ["src/RasGate.Contracts/RasGate.Contracts.csproj", "src/RasGate.Contracts/"]

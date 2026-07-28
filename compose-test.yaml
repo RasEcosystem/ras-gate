@@ -6,14 +6,15 @@
 
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ASPNETCORE_HTTP_PORTS: 8080
+      Urls: http://0.0.0.0:8080
+
+      RasGate__InstanceName: ${RASGATE_INSTANCE_NAME:?RASGATE_INSTANCE_NAME is required}
+      RasGate__ApiKey: ${RASGATE_API_KEY:?RASGATE_API_KEY is required}
 
       Rac__ExecutablePath: /opt/1c/rac/rac
       Rac__MaxConcurrentProcesses: 4
       Rac__TimeoutSeconds: 30
       Rac__MaxOutputBytes: 4194304
-
-      Security__ApiKey: ${RASGATE_API_KEY}
 
     volumes:
       - type: bind
@@ -30,6 +31,13 @@
     environment:
       BASE_URL: http://ras-gate:8080
       API_KEY: ${RASGATE_API_KEY}
+      RAC_ARGUMENTS_JSON: ${RAC_ARGUMENTS_JSON:-}
+      REQUEST_TIMEOUT: ${REQUEST_TIMEOUT:-}
+      STARTUP_ATTEMPTS: ${STARTUP_ATTEMPTS:-}
+      STARTUP_DELAY_SECONDS: ${STARTUP_DELAY_SECONDS:-}
+      TEST_DURATION: ${TEST_DURATION:-}
+      TEST_PAUSE_SECONDS: ${TEST_PAUSE_SECONDS:-}
+      TEST_VUS: ${TEST_VUS:-}
 
     volumes:
       - type: bind

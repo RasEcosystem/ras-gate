@@ -9,4 +9,6 @@ public sealed class RacOptions
     public int TimeoutSeconds { get; init; } = 30;
 
     public int MaxConcurrentProcesses { get; init; } = 4;
+
+    public int MaxOutputBytes { get; init; } = 4194304;
 }

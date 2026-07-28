@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RasGate.Application.Rac.Interfaces;
 using RasGate.Contracts.Common;
@@ -28,6 +29,7 @@ public class RacController(IRacExecutor racExecutor) : ControllerBase
             });
     }
 
+    [Authorize]
     [HttpPost("execute")]
     [ProducesResponseType(
         typeof(ApiResponse<ExecuteRacResponse>),
@@ -37,7 +39,13 @@ public class RacController(IRacExecutor racExecutor) : ControllerBase
         StatusCodes.Status400BadRequest)]
     [ProducesResponseType(
         typeof(OpenApiErrorResponse),
+        StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(
+        typeof(OpenApiErrorResponse),
         StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(
+        typeof(OpenApiErrorResponse),
+        StatusCodes.Status502BadGateway)]
     [ProducesResponseType(
         typeof(OpenApiErrorResponse),
         StatusCodes.Status503ServiceUnavailable)]

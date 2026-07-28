@@ -42,6 +42,13 @@ public static class ApiExceptionHandlingExtensions
                                 "rac_unavailable",
                                 unavailable.Message)),
 
+                    RacOutputLimitExceededException limit =>
+                        ApiResponse<object>.Fail(
+                            HttpStatusCode.BadGateway,
+                            new ApiError(
+                                "rac_output_limit_exceeded",
+                                limit.Message)),
+
                     ArgumentException arg =>
                         ApiResponse<object>.Fail(
                             HttpStatusCode.BadRequest,
