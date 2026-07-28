@@ -6,12 +6,16 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
         <UserSecretsId>bd635aef-65e4-47a5-94f3-f6ca5a717534</UserSecretsId>
+        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     </PropertyGroup>
 
     <ItemGroup>
         <Content Update="appsettings.Development.json">
             <CopyToOutputDirectory>Never</CopyToOutputDirectory>
             <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+        </Content>
+        <Content Include="..\..\.dockerignore">
+            <Link>.dockerignore</Link>
         </Content>
     </ItemGroup>
 
