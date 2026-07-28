@@ -1,7 +1,9 @@
-﻿services:
+﻿name: rasgate-load-tests
+
+services:
   ras-gate:
     build:
-      context: .
+      context: ../..
       dockerfile: src/RasGate.Web/Dockerfile
 
     environment:
@@ -41,7 +43,7 @@
 
     volumes:
       - type: bind
-        source: ./scripts/load
+        source: .
         target: /scripts
         read_only: true
 

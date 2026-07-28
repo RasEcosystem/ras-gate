@@ -1,6 +1,6 @@
 SHELL := /usr/bin/env bash
 
-COMPOSE_TEST_FILE := compose-test.yaml
+COMPOSE_TEST_FILE := scripts/load/compose.yaml
 LOAD_TESTS_DIR := scripts/load
 LOCAL_LOAD_RUNNER := scripts/run-load-test.sh
 

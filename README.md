@@ -20,7 +20,7 @@ RasGate не интерпретирует вывод RAC и не предост�
 - ограничение размера каждого выходного потока;
 - защита выполнения команд API-ключом;
 - endpoint’ы состояния RasGate и RAC;
-- OpenAPI и Swagger UI в окружении `Development`.
+- OpenAPI в окружении `Development`.
 
 ## Требования
 
@@ -100,9 +100,6 @@ curl \
 | `Urls` | Адреса и порты HTTP-сервиса |
 | `RasGate:InstanceName` | Имя экземпляра в `/rasgate/status` |
 | `RasGate:ApiKey` | Ключ для доступа к `/rac/execute` |
-| `RasGate:Logging:IncludeQueryString` | Добавлять query string в журнал HTTP-запросов |
-| `RasGate:Logging:IncludeRequestBody` | Добавлять поддерживаемые тела запросов в журнал |
-| `RasGate:Logging:MaxRequestBodyBytes` | Максимальное количество байтов тела запроса в журнале |
 | `Rac:ExecutablePath` | Абсолютный путь к `rac` |
 | `Rac:TimeoutSeconds` | Таймаут выполнения команды |
 | `Rac:MaxConcurrentProcesses` | Максимальное количество одновременно выполняемых процессов |
@@ -186,7 +183,7 @@ make release
 
 Дополнительные материалы:
 
-- [Нагрузочное и длительное тестирование](docs/load-testing.md);
+- [Нагрузочное и длительное тестирование](scripts/load/README.md);
 - [Postman collection](postman/RasGate.postman_collection.json);
 - [Postman environment](postman/RasGate.postman_environment.json).
 

@@ -16,11 +16,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RasGate.UnitTests", "tests\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RasGate.IntegrationTests", "tests\RasGate.IntegrationTests\RasGate.IntegrationTests.csproj", "{D2199F38-BD12-4093-BA9A-BE7D5B302BC0}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{51461FD3-688E-43A8-9542-C81C2615D8C3}"
-	ProjectSection(SolutionItems) = preProject
-		compose-test.yaml = compose-test.yaml
-	EndProjectSection
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

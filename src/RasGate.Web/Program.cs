@@ -3,7 +3,6 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
-using Microsoft.OpenApi;
 using RasGate.Contracts.Common;
 using RasGate.Infrastructure;
 using RasGate.Web.Api;
@@ -43,22 +42,13 @@ public class Program
         builder.Services.AddAuthorization();
 
         builder.Services.ConfigureApi();
-        builder.Services.AddOpenApi();
-        builder.Services.AddSwaggerGen(options =>
+        builder.Services.AddOpenApi(options =>
         {
-            options.AddSecurityDefinition(
-                ApiKeyAuthenticationDefaults.Scheme,
-                new OpenApiSecurityScheme
-                {
-                    Type = SecuritySchemeType.ApiKey,
-                    Name = ApiKeyAuthenticationDefaults.HeaderName,
-                    In = ParameterLocation.Header,
-                    Description =
-                        "API key required by protected endpoints."
-                });
+            options.AddDocumentTransformer<
+                ApiKeySecurityTransformer>();
 
-            options.OperationFilter<
-                ApiKeySecurityOperationFilter>();
+            options.AddOperationTransformer<
+                ApiKeySecurityTransformer>();
         });
 
         builder.Services.AddRasGateOptions(builder.Configuration);
@@ -133,25 +123,6 @@ internal static class ApplicationConfigurationExtensions
     public static void ConfigureLogging(
         this WebApplication app)
     {
-        var includeQueryString =
-            app.Configuration.GetValue<bool?>(
-                "RasGate:Logging:IncludeQueryString")
-            ?? app.Environment.IsDevelopment();
-
-        var includeRequestBody =
-            app.Configuration.GetValue<bool?>(
-                "RasGate:Logging:IncludeRequestBody")
-            ?? false;
-
-        var maxRequestBodyBytes =
-            app.Configuration.GetValue<int?>(
-                "RasGate:Logging:MaxRequestBodyBytes")
-            ?? 4096;
-
-        app.UseRequestBodyLogging(
-            includeRequestBody,
-            maxRequestBodyBytes);
-
         app.UseSerilogRequestLogging(options =>
         {
             options.GetLevel =
@@ -189,28 +160,6 @@ internal static class ApplicationConfigurationExtensions
                         "Phase",
                         "HTTP");
 
-                    if (includeQueryString &&
-                        http.Request.QueryString.HasValue)
-                        context.Set(
-                            "QueryString",
-                            http.Request.QueryString.Value);
-
-                    if (http.Items.TryGetValue(
-                            RequestBodyLoggingExtensions
-                                .RequestBodyItemKey,
-                            out var requestBody))
-                        context.Set(
-                            "RequestBody",
-                            requestBody);
-
-                    if (http.Items.TryGetValue(
-                            RequestBodyLoggingExtensions
-                                .RequestBodyTruncatedItemKey,
-                            out var requestBodyTruncated))
-                        context.Set(
-                            "RequestBodyTruncated",
-                            requestBodyTruncated);
-
                     if (http.Connection.RemoteIpAddress
                         is not null)
                         context.Set(
@@ -228,12 +177,7 @@ internal static class ApplicationConfigurationExtensions
         app.UseApiExceptionHandling();
 
         if (app.Environment.IsDevelopment())
-        {
             app.MapOpenApi();
-
-            app.UseSwagger();
-            app.UseSwaggerUI();
-        }
 
         app.UseAuthentication();
         app.UseAuthorization();
