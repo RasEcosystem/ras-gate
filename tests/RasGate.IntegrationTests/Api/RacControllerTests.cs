@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using RasGate.Web.Authentication;
 
 namespace RasGate.IntegrationTests.Api;
 
@@ -78,6 +79,59 @@ public sealed class RacControllerTests
             data.GetProperty("message").GetString());
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("invalid-api-key")]
+    public async Task Execute_WithoutValidApiKey_ReturnsUnauthorized(
+        string? apiKey)
+    {
+        await using var factory =
+            new RasGateWebApplicationFactory(
+                GetFakeRacPath());
+
+        using var client = factory.CreateClient();
+
+        if (apiKey is not null)
+            client.DefaultRequestHeaders.Add(
+                ApiKeyAuthenticationDefaults.HeaderName,
+                apiKey);
+
+        var response = await client.PostAsJsonAsync(
+            "/rac/execute",
+            new
+            {
+                arguments = new[]
+                {
+                    "--version"
+                }
+            });
+
+        Assert.Equal(
+            HttpStatusCode.Unauthorized,
+            response.StatusCode);
+
+        using var document =
+            JsonDocument.Parse(
+                await response.Content.ReadAsStringAsync());
+
+        var root = document.RootElement;
+        var error = root.GetProperty("error");
+
+        Assert.False(
+            root.GetProperty("success").GetBoolean());
+
+        Assert.False(
+            root.TryGetProperty("data", out _));
+
+        Assert.Equal(
+            "unauthorized",
+            error.GetProperty("code").GetString());
+
+        Assert.Equal(
+            "Unauthorized",
+            error.GetProperty("message").GetString());
+    }
+
     [Fact]
     public async Task Execute_Version_ReturnsExecutionResult()
     {
@@ -85,7 +139,8 @@ public sealed class RacControllerTests
             new RasGateWebApplicationFactory(
                 GetFakeRacPath());
 
-        using var client = factory.CreateClient();
+        using var client =
+            factory.CreateAuthenticatedClient();
 
         var response = await client.PostAsJsonAsync(
             "/rac/execute",
@@ -134,7 +189,8 @@ public sealed class RacControllerTests
             new RasGateWebApplicationFactory(
                 GetMissingExecutablePath());
 
-        using var client = factory.CreateClient();
+        using var client =
+            factory.CreateAuthenticatedClient();
 
         var response = await client.PostAsJsonAsync(
             "/rac/execute",
@@ -173,13 +229,66 @@ public sealed class RacControllerTests
     }
 
     [Fact]
+    public async Task Execute_OutputExceedsLimit_ReturnsBadGateway()
+    {
+        const int maxOutputBytes = 1024;
+
+        await using var factory =
+            new RasGateWebApplicationFactory(
+                GetFakeRacPath(),
+                maxOutputBytes: maxOutputBytes);
+
+        using var client =
+            factory.CreateAuthenticatedClient();
+
+        var response = await client.PostAsJsonAsync(
+            "/rac/execute",
+            new
+            {
+                arguments = new[]
+                {
+                    "__test",
+                    "large-output",
+                    "1048576"
+                }
+            });
+
+        Assert.Equal(
+            HttpStatusCode.BadGateway,
+            response.StatusCode);
+
+        using var document =
+            JsonDocument.Parse(
+                await response.Content.ReadAsStringAsync());
+
+        var root = document.RootElement;
+        var error = root.GetProperty("error");
+
+        Assert.False(
+            root.GetProperty("success").GetBoolean());
+
+        Assert.False(
+            root.TryGetProperty("data", out _));
+
+        Assert.Equal(
+            "rac_output_limit_exceeded",
+            error.GetProperty("code").GetString());
+
+        Assert.Equal(
+            $"RAC output exceeded the configured limit of " +
+            $"{maxOutputBytes} bytes.",
+            error.GetProperty("message").GetString());
+    }
+
+    [Fact]
     public async Task Execute_EmptyArguments_ReturnsBadRequest()
     {
         await using var factory =
             new RasGateWebApplicationFactory(
                 GetFakeRacPath());
 
-        using var client = factory.CreateClient();
+        using var client =
+            factory.CreateAuthenticatedClient();
 
         var response = await client.PostAsJsonAsync(
             "/rac/execute",
@@ -219,7 +328,8 @@ public sealed class RacControllerTests
                 5,
                 1);
 
-        using var client = factory.CreateClient();
+        using var client =
+            factory.CreateAuthenticatedClient();
 
         var runningRequest = client.PostAsJsonAsync(
             "/rac/execute",

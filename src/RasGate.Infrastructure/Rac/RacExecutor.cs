@@ -140,13 +140,19 @@ public sealed class RacExecutor : IRacExecutor, IDisposable
 
         process.Start();
 
-        var standardOutputTask =
-            // ReSharper disable once MethodSupportsCancellation
-            process.StandardOutput.ReadToEndAsync();
+        var standardOutputTask = ReadOutputAsync(
+            process.StandardOutput.BaseStream,
+            outputEncoding,
+            _options.MaxOutputBytes);
 
-        var standardErrorTask =
-            // ReSharper disable once MethodSupportsCancellation
-            process.StandardError.ReadToEndAsync();
+        var standardErrorTask = ReadOutputAsync(
+            process.StandardError.BaseStream,
+            outputEncoding,
+            _options.MaxOutputBytes);
+
+        var outputTask = Task.WhenAll(
+            standardOutputTask,
+            standardErrorTask);
 
         using var timeoutCancellationTokenSource =
             new CancellationTokenSource(
@@ -157,12 +163,43 @@ public sealed class RacExecutor : IRacExecutor, IDisposable
                 cancellationToken,
                 timeoutCancellationTokenSource.Token);
 
+        var processExitTask = process.WaitForExitAsync(
+            linkedCancellationTokenSource.Token);
+
+        var monitoredTasks = new HashSet<Task>
+        {
+            processExitTask,
+            standardOutputTask,
+            standardErrorTask
+        };
+
         var timedOut = false;
 
         try
         {
-            await process.WaitForExitAsync(
-                linkedCancellationTokenSource.Token);
+            while (true)
+            {
+                var completedTask =
+                    await Task.WhenAny(monitoredTasks);
+
+                await completedTask;
+
+                if (completedTask == processExitTask)
+                    break;
+
+                monitoredTasks.Remove(completedTask);
+            }
+
+            await outputTask;
+        }
+        catch (RacOutputLimitExceededException)
+        {
+            TryKillProcess(process);
+
+            await WaitForExitSafelyAsync(process);
+            await IgnoreOutputErrorsAsync(outputTask);
+
+            throw;
         }
         catch (OperationCanceledException)
             when (timeoutCancellationTokenSource.IsCancellationRequested
@@ -173,6 +210,7 @@ public sealed class RacExecutor : IRacExecutor, IDisposable
             TryKillProcess(process);
 
             await WaitForExitSafelyAsync(process);
+            await IgnoreOutputErrorsAsync(outputTask);
         }
         catch (OperationCanceledException)
             when (cancellationToken.IsCancellationRequested)
@@ -180,6 +218,7 @@ public sealed class RacExecutor : IRacExecutor, IDisposable
             TryKillProcess(process);
 
             await WaitForExitSafelyAsync(process);
+            await IgnoreOutputErrorsAsync(outputTask);
 
             throw;
         }
@@ -199,6 +238,18 @@ public sealed class RacExecutor : IRacExecutor, IDisposable
             DurationMilliseconds = stopwatch.ElapsedMilliseconds,
             TimedOut = timedOut
         };
+    }
+
+    private static async Task IgnoreOutputErrorsAsync(Task outputTask)
+    {
+        try
+        {
+            await outputTask;
+        }
+        catch
+        {
+            // ignored
+        }
     }
 
     private static void TryKillProcess(Process process)
@@ -228,5 +279,30 @@ public sealed class RacExecutor : IRacExecutor, IDisposable
         catch (InvalidOperationException)
         {
         }
+    }
+
+    private static async Task<string> ReadOutputAsync(
+        Stream stream,
+        Encoding encoding,
+        int maxOutputBytes)
+    {
+        var buffer = new byte[8192];
+
+        await using var output = new MemoryStream();
+
+        while (true)
+        {
+            var bytesRead = await stream.ReadAsync(buffer);
+
+            if (bytesRead == 0)
+                break;
+
+            if (output.Length + bytesRead > maxOutputBytes)
+                throw new RacOutputLimitExceededException(maxOutputBytes);
+
+            await output.WriteAsync(buffer.AsMemory(0, bytesRead));
+        }
+
+        return encoding.GetString(output.ToArray());
     }
 }

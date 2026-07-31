@@ -1,0 +1,51 @@
+﻿name: rasgate-load-tests
+
+services:
+  ras-gate:
+    build:
+      context: ../..
+      dockerfile: src/RasGate.Web/Dockerfile
+
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      Urls: http://0.0.0.0:8080
+
+      RasGate__InstanceName: ${RASGATE_INSTANCE_NAME:?RASGATE_INSTANCE_NAME is required}
+      RasGate__ApiKey: ${RASGATE_API_KEY:?RASGATE_API_KEY is required}
+
+      Rac__ExecutablePath: /opt/1c/rac/rac
+      Rac__MaxConcurrentProcesses: 4
+      Rac__TimeoutSeconds: 30
+      Rac__MaxOutputBytes: 4194304
+
+    volumes:
+      - type: bind
+        source: ${RAC_HOST_PATH}
+        target: /opt/1c/rac
+        read_only: true
+
+    ports:
+      - "127.0.0.1:8080:8080"
+
+  k6:
+    image: grafana/k6:latest
+
+    environment:
+      BASE_URL: http://ras-gate:8080
+      API_KEY: ${RASGATE_API_KEY}
+      RAC_ARGUMENTS_JSON: ${RAC_ARGUMENTS_JSON:-}
+      REQUEST_TIMEOUT: ${REQUEST_TIMEOUT:-}
+      STARTUP_ATTEMPTS: ${STARTUP_ATTEMPTS:-}
+      STARTUP_DELAY_SECONDS: ${STARTUP_DELAY_SECONDS:-}
+      TEST_DURATION: ${TEST_DURATION:-}
+      TEST_PAUSE_SECONDS: ${TEST_PAUSE_SECONDS:-}
+      TEST_VUS: ${TEST_VUS:-}
+
+    volumes:
+      - type: bind
+        source: .
+        target: /scripts
+        read_only: true
+
+    depends_on:
+      - ras-gate
