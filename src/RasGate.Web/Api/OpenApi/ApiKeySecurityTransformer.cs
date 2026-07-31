@@ -19,7 +19,7 @@ public sealed class ApiKeySecurityTransformer :
             new Dictionary<string, IOpenApiSecurityScheme>();
 
         document.Components.SecuritySchemes[
-            ApiKeyAuthenticationDefaults.Scheme] =
+                ApiKeyAuthenticationDefaults.Scheme] =
             new OpenApiSecurityScheme
             {
                 Type = SecuritySchemeType.ApiKey,

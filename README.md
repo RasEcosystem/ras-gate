@@ -8,6 +8,13 @@ RasGate — небольшой HTTP-адаптер для утилиты адм�
 HTTP-клиент → RasGate → RAC → RAS → кластер 1С
 ```
 
+> [!IMPORTANT]
+> **Load & Stablility Tests: Passed ✅**
+>
+> RasGate успешно прошёл smoke-, load-, stress- и soak-тестирование без критических ошибок.
+>
+> 📊 [Отчёт о результатах тестирования](docs/load-testing-report.md)
+
 RasGate не интерпретирует вывод RAC и не предоставляет предметные API для кластеров, информационных баз или сеансов. Это контролируемый транспорт для команд RAC.
 
 ## Возможности
@@ -183,6 +190,7 @@ make release
 
 Дополнительные материалы:
 
+- [Отчёт о результатах нагрузочного тестирования](docs/load-testing-report.md);
 - [Нагрузочное и длительное тестирование](scripts/load/README.md);
 - [Postman collection](postman/RasGate.postman_collection.json);
 - [Postman environment](postman/RasGate.postman_environment.json).
