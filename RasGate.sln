@@ -2,9 +2,7 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RasGate.Web", "src\RasGate.Web\RasGate.Web.csproj", "{655FE874-AF0C-4467-99EA-894A9FADD177}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RasGate.Contracts", "src\RasGate.Contracts\RasGate.Contracts.csproj", "{45BCEF02-EE58-466F-9153-7ABCAE49107E}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RasGate.Application", "src\RasGate.Application\RasGate.Application.csproj", "{0E3C8FD6-487F-4DD6-96A3-E62CBDC275D6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RasGate.Core", "src\RasGate.Core\RasGate.Core.csproj", "{0E3C8FD6-487F-4DD6-96A3-E62CBDC275D6}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RasGate.Infrastructure", "src\RasGate.Infrastructure\RasGate.Infrastructure.csproj", "{F827A942-7588-4F6D-AE3C-9BCB65671ED9}"
 EndProject
@@ -26,10 +24,6 @@ Global
 		{655FE874-AF0C-4467-99EA-894A9FADD177}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{655FE874-AF0C-4467-99EA-894A9FADD177}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{655FE874-AF0C-4467-99EA-894A9FADD177}.Release|Any CPU.Build.0 = Release|Any CPU
-		{45BCEF02-EE58-466F-9153-7ABCAE49107E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{45BCEF02-EE58-466F-9153-7ABCAE49107E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{45BCEF02-EE58-466F-9153-7ABCAE49107E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{45BCEF02-EE58-466F-9153-7ABCAE49107E}.Release|Any CPU.Build.0 = Release|Any CPU
 		{0E3C8FD6-487F-4DD6-96A3-E62CBDC275D6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{0E3C8FD6-487F-4DD6-96A3-E62CBDC275D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0E3C8FD6-487F-4DD6-96A3-E62CBDC275D6}.Release|Any CPU.ActiveCfg = Release|Any CPU

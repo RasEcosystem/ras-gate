@@ -1,6 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using RasGate.Core.Common;
+using RasGate.Core.Rac;
+using RasGate.Web.Api;
 using RasGate.Web.Authentication;
 
 namespace RasGate.IntegrationTests.Api;
@@ -110,6 +113,15 @@ public sealed class RacControllerTests
             HttpStatusCode.Unauthorized,
             response.StatusCode);
 
+        Assert.Contains(
+            response.Headers.WwwAuthenticate,
+            challenge => string.Equals(
+                challenge.Scheme,
+                ApiKeyAuthenticationDefaults.Scheme,
+                StringComparison.Ordinal));
+        Assert.True(
+            response.Headers.Contains(ApiTrace.HeaderName));
+
         using var document =
             JsonDocument.Parse(
                 await response.Content.ReadAsStringAsync());
@@ -156,30 +168,72 @@ public sealed class RacControllerTests
             HttpStatusCode.OK,
             response.StatusCode);
 
-        using var document =
-            JsonDocument.Parse(
-                await response.Content.ReadAsStringAsync());
+        var envelope = await response.Content
+            .ReadFromJsonAsync<ApiResponse<ExecuteRacResponse>>();
 
-        var root = document.RootElement;
-        var data = root.GetProperty("data");
-
-        Assert.True(
-            root.GetProperty("success").GetBoolean());
-
+        Assert.NotNull(envelope);
+        Assert.True(envelope.Success);
+        Assert.NotNull(envelope.Data);
+        Assert.Equal(0, envelope.Data.ExitCode);
         Assert.Equal(
-            0,
-            data.GetProperty("exitCode").GetInt32());
-
-        Assert.False(
-            data.GetProperty("timedOut").GetBoolean());
-
+            RacExecutionOutcome.Succeeded,
+            envelope.Data.Outcome);
+        Assert.False(envelope.Data.TimedOut);
         Assert.Contains(
             "Remote Administrative Client",
-            data.GetProperty("standardOutput").GetString());
+            envelope.Data.StandardOutput);
+        Assert.Equal("", envelope.Data.StandardError);
+    }
 
-        Assert.Equal(
-            "",
-            data.GetProperty("standardError").GetString());
+    [Fact]
+    public async Task Execute_NonZeroExit_ReturnsFailedOutcome()
+    {
+        await using var factory = new RasGateWebApplicationFactory(
+            GetFakeRacPath());
+        using var client = factory.CreateAuthenticatedClient();
+
+        using var response = await client.PostAsJsonAsync(
+            "/rac/execute",
+            new
+            {
+                arguments = new[] { "__test", "exit", "17" }
+            });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var document = JsonDocument.Parse(
+            await response.Content.ReadAsStringAsync());
+        var data = document.RootElement.GetProperty("data");
+
+        Assert.Equal("failed", data.GetProperty("outcome").GetString());
+        Assert.Equal(17, data.GetProperty("exitCode").GetInt32());
+        Assert.False(data.GetProperty("timedOut").GetBoolean());
+    }
+
+    [Fact]
+    public async Task Execute_Timeout_ReturnsUnknownOutcome()
+    {
+        await using var factory = new RasGateWebApplicationFactory(
+            GetFakeRacPath(),
+            1);
+        using var client = factory.CreateAuthenticatedClient();
+
+        using var response = await client.PostAsJsonAsync(
+            "/rac/execute",
+            new
+            {
+                arguments = new[] { "__test", "delay", "10000" }
+            });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var document = JsonDocument.Parse(
+            await response.Content.ReadAsStringAsync());
+        var data = document.RootElement.GetProperty("data");
+
+        Assert.Equal("unknown", data.GetProperty("outcome").GetString());
+        Assert.Equal(-1, data.GetProperty("exitCode").GetInt32());
+        Assert.True(data.GetProperty("timedOut").GetBoolean());
     }
 
     [Fact]
@@ -276,7 +330,8 @@ public sealed class RacControllerTests
 
         Assert.Equal(
             $"RAC output exceeded the configured limit of " +
-            $"{maxOutputBytes} bytes.",
+            $"{maxOutputBytes} bytes. The external command outcome " +
+            $"is unknown; automatic retry is unsafe.",
             error.GetProperty("message").GetString());
     }
 
@@ -317,6 +372,70 @@ public sealed class RacControllerTests
         Assert.Equal(
             "bad_request",
             error.GetProperty("code").GetString());
+    }
+
+    [Fact]
+    public async Task Execute_NullArgument_ReturnsBadRequest()
+    {
+        await using var factory =
+            new RasGateWebApplicationFactory(
+                GetFakeRacPath());
+
+        using var client =
+            factory.CreateAuthenticatedClient();
+
+        using var response = await client.PostAsJsonAsync(
+            "/rac/execute",
+            new
+            {
+                arguments = new[]
+                {
+                    "__test",
+                    null
+                }
+            });
+
+        Assert.Equal(
+            HttpStatusCode.BadRequest,
+            response.StatusCode);
+
+        using var document = JsonDocument.Parse(
+            await response.Content.ReadAsStringAsync());
+
+        Assert.Equal(
+            "bad_request",
+            document.RootElement
+                .GetProperty("error")
+                .GetProperty("code")
+                .GetString());
+    }
+
+    [Fact]
+    public async Task Execute_OversizedArgument_ReturnsBadRequestAndKeepsRacAvailable()
+    {
+        await using var factory = new RasGateWebApplicationFactory(
+            GetFakeRacPath());
+        using var client = factory.CreateAuthenticatedClient();
+
+        using var rejected = await client.PostAsJsonAsync(
+            "/rac/execute",
+            new
+            {
+                arguments = new[]
+                {
+                    "__test",
+                    "stdout",
+                    new string('x', 8193)
+                }
+            });
+
+        Assert.Equal(HttpStatusCode.BadRequest, rejected.StatusCode);
+
+        using var accepted = await client.PostAsJsonAsync(
+            "/rac/execute",
+            new { arguments = new[] { "--version" } });
+
+        Assert.Equal(HttpStatusCode.OK, accepted.StatusCode);
     }
 
     [Fact]

@@ -11,7 +11,7 @@ public static class ApiJson
         JsonSerializerOptions options)
     {
         options.Converters.Add(
-            new JsonStringEnumConverter());
+            new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
     }
 
     private static JsonSerializerOptions Create()

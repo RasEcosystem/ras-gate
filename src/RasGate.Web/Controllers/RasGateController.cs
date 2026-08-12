@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using RasGate.Contracts.Common;
-using RasGate.Contracts.RasGate;
+using RasGate.Core.Common;
+using RasGate.Core.RasGate;
 using RasGate.Infrastructure.RasGate;
 
 namespace RasGate.Web.Controllers;

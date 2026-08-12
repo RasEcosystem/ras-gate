@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System.Diagnostics;
+using System.Globalization;
 
 return await FakeRac.RunAsync(args);
 
@@ -60,6 +61,15 @@ internal static class FakeRac
             case "delay":
                 return await DelayAsync(args);
 
+            case "pid-delay":
+                return await WritePidAndDelayAsync(args);
+
+            case "spawn-pipe-holder":
+                return await SpawnPipeHolderAsync(args);
+
+            case "hold-pipes":
+                return await HoldPipesAsync(args);
+
             case "large-output":
                 return WriteLargeOutput(args);
 
@@ -94,6 +104,94 @@ internal static class FakeRac
         await Task.Delay(milliseconds);
 
         Console.WriteLine($"Completed after {milliseconds} ms.");
+
+        return 0;
+    }
+
+    private static async Task<int> WritePidAndDelayAsync(
+        string[] args)
+    {
+        if (args.Length < 4)
+        {
+            await Console.Error.WriteLineAsync(
+                "FakeRac: PID file is not specified.");
+
+            return 1;
+        }
+
+        await File.WriteAllTextAsync(
+            args[3],
+            Environment.ProcessId.ToString(
+                CultureInfo.InvariantCulture));
+
+        return await DelayAsync(args);
+    }
+
+    private static async Task<int> SpawnPipeHolderAsync(
+        string[] args)
+    {
+        if (args.Length < 4)
+        {
+            await Console.Error.WriteLineAsync(
+                "FakeRac: child PID file is not specified.");
+
+            return 1;
+        }
+
+        var executablePath = Environment.ProcessPath;
+
+        if (string.IsNullOrWhiteSpace(executablePath))
+        {
+            await Console.Error.WriteLineAsync(
+                "FakeRac: current executable path is unavailable.");
+
+            return 1;
+        }
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = executablePath,
+            UseShellExecute = false,
+            RedirectStandardOutput = false,
+            RedirectStandardError = false,
+            CreateNoWindow = true
+        };
+
+        startInfo.ArgumentList.Add("__test");
+        startInfo.ArgumentList.Add("hold-pipes");
+        startInfo.ArgumentList.Add(args[2]);
+
+        using var child = Process.Start(startInfo);
+
+        if (child is null)
+        {
+            await Console.Error.WriteLineAsync(
+                "FakeRac: pipe-holding child did not start.");
+
+            return 1;
+        }
+
+        await File.WriteAllTextAsync(
+            args[3],
+            child.Id.ToString(CultureInfo.InvariantCulture));
+
+        Console.WriteLine($"Started pipe holder {child.Id}.");
+        Console.Out.Flush();
+
+        // Exit while the child still owns inherited stdout/stderr. The test
+        // exercises the executor's lifecycle after the root PID has gone.
+        return 0;
+    }
+
+    private static async Task<int> HoldPipesAsync(string[] args)
+    {
+        var milliseconds =
+            args.Length >= 3 &&
+            int.TryParse(args[2], out var value)
+                ? value
+                : 10000;
+
+        await Task.Delay(milliseconds);
 
         return 0;
     }

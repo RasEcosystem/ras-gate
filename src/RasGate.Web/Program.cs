@@ -1,15 +1,15 @@
 using System.Net;
-using System.Text;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
-using RasGate.Contracts.Common;
+using RasGate.Core.Common;
 using RasGate.Infrastructure;
 using RasGate.Web.Api;
 using RasGate.Web.Api.Filters;
 using RasGate.Web.Api.OpenApi;
 using RasGate.Web.Authentication;
 using RasGate.Web.Middlewares;
+using RasGate.Web.Observability;
 using Serilog;
 using Serilog.Events;
 
@@ -19,8 +19,6 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-
         var builder = WebApplication.CreateBuilder(args);
 
         builder.Host.UseSerilog((context, services, configuration) =>
@@ -59,7 +57,19 @@ public class Program
         app.ConfigureLogging();
         app.ConfigurePipeline();
 
-        app.Run();
+        var logger = app.Services
+            .GetRequiredService<ILogger<Program>>();
+
+        try
+        {
+            app.ConfigureApplicationLifecycleLogging(logger);
+            app.Run();
+        }
+        catch (Exception exception)
+        {
+            logger.LogUnexpectedTermination(exception);
+            throw;
+        }
     }
 }
 
@@ -76,10 +86,6 @@ internal static class ApplicationConfigurationExtensions
 
         services.Configure<MvcOptions>(options =>
         {
-            options.Filters.Add(
-                new ConsumesAttribute(
-                    "application/json"));
-
             options.Filters.Add(
                 new ProducesAttribute(
                     "application/json"));
@@ -113,7 +119,7 @@ internal static class ApplicationConfigurationExtensions
                             .ToList();
 
                         return new BadRequestObjectResult(
-                            ApiResponse<object>.Fail(
+                            ApiResponse<object>.FailWithDefaultError(
                                 HttpStatusCode.BadRequest,
                                 errors));
                     };
@@ -174,7 +180,9 @@ internal static class ApplicationConfigurationExtensions
     public static void ConfigurePipeline(
         this WebApplication app)
     {
+        app.UseApiTraceHeader();
         app.UseApiExceptionHandling();
+        app.UseApiStatusCodeResponses();
 
         if (app.Environment.IsDevelopment())
             app.MapOpenApi();
