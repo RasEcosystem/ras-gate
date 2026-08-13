@@ -4,6 +4,7 @@ set -Eeuo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROJECT_FILE="$ROOT_DIR/src/RasGate.Web/RasGate.Web.csproj"
+SOLUTION_FILE="$ROOT_DIR/RasGate.sln"
 VERSION_FILE="$ROOT_DIR/version.json"
 ARTIFACTS_DIR="$ROOT_DIR/artifacts"
 PUBLISH_DIR="$ARTIFACTS_DIR/publish"
@@ -50,6 +51,7 @@ function package_runtime() {
     --runtime "$runtime" \
     --self-contained true \
     --output "$publish_path" \
+    -m:1 \
     -p:Version="$VERSION" \
     -p:PublishSingleFile=true \
     -p:EnableCompressionInSingleFile=true \
@@ -95,6 +97,11 @@ if [[ ! -f "$PROJECT_FILE" ]]; then
   exit 1
 fi
 
+if [[ ! -f "$SOLUTION_FILE" ]]; then
+  echo "Error: solution file was not found: $SOLUTION_FILE" >&2
+  exit 1
+fi
+
 if [[ ! -f "$VERSION_FILE" ]]; then
   echo "Error: version file was not found: $VERSION_FILE" >&2
   exit 1
@@ -102,12 +109,18 @@ fi
 
 VERSION="$(read_version)"
 
+echo "Verifying RasGate $VERSION before packaging"
+
+dotnet restore "$SOLUTION_FILE" -m:1
+dotnet test "$SOLUTION_FILE" \
+  --configuration Release \
+  --no-restore \
+  -m:1
+
 echo "Building RasGate $VERSION"
 
 rm -rf "$ARTIFACTS_DIR"
 mkdir -p "$PUBLISH_DIR"
-
-dotnet restore "$PROJECT_FILE"
 
 for runtime in "${RUNTIMES[@]}"; do
   package_runtime "$runtime"

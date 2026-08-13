@@ -25,8 +25,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\RasGate.Application\RasGate.Application.csproj"/>
-        <ProjectReference Include="..\..\src\RasGate.Contracts\RasGate.Contracts.csproj"/>
+        <ProjectReference Include="..\..\src\RasGate.Core\RasGate.Core.csproj"/>
         <ProjectReference Include="..\..\src\RasGate.Infrastructure\RasGate.Infrastructure.csproj"/>
     </ItemGroup>
 

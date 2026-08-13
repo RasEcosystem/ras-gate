@@ -5,7 +5,7 @@ using System.Text;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
-using RasGate.Contracts.Common;
+using RasGate.Core.Common;
 using RasGate.Infrastructure.RasGate;
 using RasGate.Web.Api;
 
@@ -14,13 +14,13 @@ namespace RasGate.Web.Authentication;
 public sealed class ApiKeyAuthenticationHandler
     : AuthenticationHandler<AuthenticationSchemeOptions>
 {
-    private readonly IOptionsMonitor<RasGateOptions> _rasGateOptions;
+    private readonly IOptions<RasGateOptions> _rasGateOptions;
 
     public ApiKeyAuthenticationHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
         UrlEncoder encoder,
-        IOptionsMonitor<RasGateOptions> rasGateOptions)
+        IOptions<RasGateOptions> rasGateOptions)
         : base(options, logger, encoder)
     {
         _rasGateOptions = rasGateOptions;
@@ -40,7 +40,7 @@ public sealed class ApiKeyAuthenticationHandler
                     "A single API key must be provided."));
 
         var providedApiKey = headerValues[0];
-        var expectedApiKey = _rasGateOptions.CurrentValue.ApiKey;
+        var expectedApiKey = _rasGateOptions.Value.ApiKey;
 
         if (string.IsNullOrEmpty(providedApiKey) ||
             string.IsNullOrEmpty(expectedApiKey) ||
@@ -53,7 +53,7 @@ public sealed class ApiKeyAuthenticationHandler
             [
                 new Claim(
                     ClaimTypes.NameIdentifier,
-                    ApiKeyAuthenticationDefaults.Scheme)
+                    "api-key")
             ],
             Scheme.Name);
 
@@ -70,12 +70,15 @@ public sealed class ApiKeyAuthenticationHandler
         Response.StatusCode =
             StatusCodes.Status401Unauthorized;
 
+        Response.Headers.WWWAuthenticate =
+            ApiKeyAuthenticationDefaults.Scheme;
+
         var traceId = ApiTrace.GetTraceId(Context);
 
         Response.Headers[ApiTrace.HeaderName] =
             traceId;
 
-        var response = ApiResponse<object>.Fail(
+        var response = ApiResponse<object>.FailWithDefaultError(
             HttpStatusCode.Unauthorized);
 
         await Response.WriteAsJsonAsync(

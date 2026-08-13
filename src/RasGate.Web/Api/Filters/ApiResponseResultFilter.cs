@@ -1,6 +1,7 @@
+using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using RasGate.Contracts.Common;
+using RasGate.Core.Common;
 
 namespace RasGate.Web.Api.Filters;
 
@@ -18,33 +19,19 @@ public sealed class ApiResponseResultFilter
             return;
         }
 
-        if (objectResult.Value is null)
+        if (objectResult.Value is not IApiResponse)
         {
-            await next();
-            return;
-        }
+            var statusCode = objectResult.StatusCode
+                             ?? context.HttpContext.Response.StatusCode;
 
-        var traceId =
-            ApiTrace.GetTraceId(
-                context.HttpContext);
+            objectResult.Value = statusCode >=
+                                 StatusCodes.Status400BadRequest
+                ? ApiResponse<object>.FailWithDefaultError(
+                    (HttpStatusCode)statusCode)
+                : ApiResponse<object>.Ok(
+                    objectResult.Value);
 
-        context.HttpContext.Response.Headers[ApiTrace.HeaderName] = traceId;
-
-        if (objectResult.Value is IApiResponse response)
-        {
-            objectResult.StatusCode = (int)response.StatusCode;
-        }
-        else
-        {
-            objectResult.Value =
-                ApiResponse<object>
-                    .Ok(
-                        objectResult.Value);
-
-            objectResult.StatusCode
-                ??=
-                StatusCodes
-                    .Status200OK;
+            objectResult.StatusCode ??= statusCode;
         }
 
         await next();

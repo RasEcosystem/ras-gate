@@ -1,150 +1,202 @@
+[English](README.md) | [Русский](README.ru.md)
+
 # RasGate
 
-RasGate — небольшой HTTP-адаптер для утилиты администрирования `rac` платформы 1С:Предприятие.
-
-Клиент передаёт аргументы RAC через HTTP, а RasGate запускает только настроенный исполняемый файл без использования shell и возвращает `stdout`, `stderr`, код завершения и время выполнения.
+RasGate puts a small HTTP API in front of the 1C:Enterprise `rac` utility. A
+client sends the same argument list it would pass to `rac`; RasGate runs the
+configured executable and returns its exit code, output, and execution time.
 
 ```text
-HTTP-клиент → RasGate → RAC → RAS → кластер 1С
+HTTP client -> RasGate -> RAC -> RAS -> 1C cluster
 ```
 
-> [!IMPORTANT]
-> **Load & Stability Tests: Passed ✅**
->
-> RasGate успешно прошёл smoke-, load-, stress- и soak-тестирование без критических ошибок.
->
-> 📊 [Отчёт о результатах тестирования](docs/load-testing-report.md)
+The service is deliberately thin. It does not run a shell, parse RAC output, or
+try to model clusters, infobases, and sessions as its own domain API.
 
-RasGate не интерпретирует вывод RAC и не предоставляет предметные API для кластеров, информационных баз или сеансов. Это контролируемый транспорт для команд RAC.
+There is no web interface at `/`. A browser request to the root path therefore
+gets a normal JSON `404` response. Use `/rasgate/status` to check the service.
 
-## Возможности
+## Requirements
 
-- запуск настроенного исполняемого файла `rac`;
-- безопасная передача аргументов без shell;
-- раздельное чтение `stdout` и `stderr`;
-- таймаут и отмена выполнения;
-- ограничение количества одновременно запущенных процессов;
-- ограничение размера каждого выходного потока;
-- защита выполнения команд API-ключом;
-- endpoint’ы состояния RasGate и RAC;
-- OpenAPI в окружении `Development`.
+To run RasGate you need Windows or Linux, a compatible `rac` executable, and
+network access to RAS. Release archives are self-contained and include the .NET
+runtime.
 
-## Требования
+Building from source requires .NET SDK 10. GNU Make and Bash are needed for the
+Makefile and release scripts. Docker deployment requires Docker Compose.
 
-Для запуска готовой сборки необходимы:
+## API key
 
-- Windows или Linux;
-- установленная утилита RAC;
-- доступный сервер администрирования RAS.
+`POST /rac/execute` is protected by an API key. RasGate refuses to start when
+`RasGate:ApiKey` is missing or invalid. The key must be 32 to 512 characters
+long, with no leading or trailing whitespace.
 
-Релизные сборки являются self-contained и не требуют отдельной установки .NET Runtime.
-
-Для сборки из исходников необходим .NET SDK 10. Для команд из `Makefile` также требуется GNU Make.
-
-## Быстрый старт
-
-Настройте `appsettings.json`, расположенный рядом с исполняемым файлом RasGate:
+RasGate uses the standard .NET configuration system, so the key can be stored
+in `appsettings.json` in both development and production. When running from
+source, edit `src/RasGate.Web/appsettings.json`. For a published application,
+edit the `appsettings.json` next to the RasGate executable. Add `ApiKey` to the
+existing `RasGate` section:
 
 ```json
 {
-  "Urls": "http://127.0.0.1:5050",
   "RasGate": {
     "InstanceName": "RasGate Application",
-    "ApiKey": "replace-with-your-secret-key"
-  },
-  "Rac": {
-    "ExecutablePath": "/opt/1cv8/x86_64/rac",
-    "TimeoutSeconds": 30,
-    "MaxConcurrentProcesses": 4,
-    "MaxOutputBytes": 4194304
+    "ApiKey": "<paste-a-random-key-of-at-least-32-characters-here>"
   }
 }
 ```
 
-Для Windows путь к RAC записывается с экранированными обратными слешами:
+Replace the value between angle brackets. The repository copy of this file is
+tracked by Git and deliberately ships without a key. Never commit a real key.
+If production keeps the key in this file, restrict access to the application
+directory, deployment artifacts, and backups that contain it.
+
+The safer option for local development is .NET User Secrets. It keeps the key
+outside the working tree:
+
+```bash
+api_key="$(openssl rand -hex 32)"
+dotnet user-secrets set \
+  "RasGate:ApiKey" "$api_key" \
+  --project src/RasGate.Web/RasGate.Web.csproj
+```
+
+PowerShell:
+
+```powershell
+$apiKey = [guid]::NewGuid().ToString("N") + [guid]::NewGuid().ToString("N")
+dotnet user-secrets set `
+  "RasGate:ApiKey" $apiKey `
+  --project src/RasGate.Web/RasGate.Web.csproj
+```
+
+An environment variable is an alternative for any deployment and overrides
+the value from `appsettings.json`. The double underscore is the .NET
+replacement for `:` in a configuration key:
+
+```bash
+export RasGate__ApiKey="$(openssl rand -hex 32)"
+./RasGate.Web
+```
+
+Docker Compose reads the key from `RASGATE_API_KEY` in your local `.env` file.
+Whichever method you choose, clients must send that same value in the
+`X-Api-Key` header.
+
+## Run locally
+
+Set the path to RAC in `src/RasGate.Web/appsettings.json` or through the
+`Rac__ExecutablePath` environment variable:
+
+```json
+{
+  "RasGate": {
+    "InstanceName": "RasGate Application"
+  },
+  "Rac": {
+    "ExecutablePath": "/opt/1cv8/x86_64/rac"
+  }
+}
+```
+
+On Windows, escape backslashes in JSON:
 
 ```json
 "ExecutablePath": "C:\\Program Files\\1cv8\\8.3.27.2214\\bin\\rac.exe"
 ```
 
-Обязательно замените пример API-ключа собственным секретным значением.
-
-Запустите RasGate:
-
-```powershell
-.\RasGate.Web.exe
-```
+Start the project and check both status endpoints:
 
 ```bash
-chmod +x ./RasGate.Web
-./RasGate.Web
-```
+dotnet run --project src/RasGate.Web/RasGate.Web.csproj
 
-Проверьте состояние:
-
-```bash
 curl http://127.0.0.1:5050/rasgate/status
 curl http://127.0.0.1:5050/rac/status
 ```
 
-Выполните безопасную команду `rac --version`:
+Run a harmless command through the API:
 
 ```bash
+api_key='<the same key configured in RasGate>'
 curl \
   --request POST \
-  --header "Content-Type: application/json" \
-  --header "X-Api-Key: replace-with-your-secret-key" \
+  --header 'Content-Type: application/json' \
+  --header "X-Api-Key: ${api_key}" \
   --data '{"arguments":["--version"]}' \
   http://127.0.0.1:5050/rac/execute
 ```
 
-По умолчанию сервис доступен только локально. Для удалённого доступа измените `Urls`, настройте сетевой экран и используйте HTTPS.
+The default bind address is localhost. If the service must be reachable over a
+network, change `Urls`, restrict the port with a firewall, and terminate TLS in
+RasGate or a trusted reverse proxy.
 
-## Конфигурация
+## Configuration
 
-| Параметр | Назначение |
+| Setting | Default and allowed values |
 |---|---|
-| `Urls` | Адреса и порты HTTP-сервиса |
-| `RasGate:InstanceName` | Имя экземпляра в `/rasgate/status` |
-| `RasGate:ApiKey` | Ключ для доступа к `/rac/execute` |
-| `Rac:ExecutablePath` | Абсолютный путь к `rac` |
-| `Rac:TimeoutSeconds` | Таймаут выполнения команды |
-| `Rac:MaxConcurrentProcesses` | Максимальное количество одновременно выполняемых процессов |
-| `Rac:MaxOutputBytes` | Максимальный размер каждого из потоков `stdout` и `stderr` |
+| `Urls` | `http://127.0.0.1:5050` |
+| `RasGate:InstanceName` | Name returned by `/rasgate/status` |
+| `RasGate:ApiKey` | Required secret, 32-512 characters |
+| `Rac:ExecutablePath` | `rac`, an absolute path, or a command available through `PATH` |
+| `Rac:TimeoutSeconds` | `30`, range 1-3600 |
+| `Rac:StatusCacheSeconds` | `30`, range 1-300 |
+| `Rac:MaxConcurrentProcesses` | `4`, range 1-32 per RasGate instance |
+| `Rac:MaxOutputBytes` | `4194304`, maximum `16777216` per output stream |
+| `Rac:MaxArgumentCount` | `128`, range 1-128 |
+| `Rac:MaxArgumentBytes` | `8192`, UTF-8 bytes per argument |
+| `Rac:MaxTotalArgumentBytes` | `24576`, total UTF-8 bytes; not less than `MaxArgumentBytes` |
 
-Параметры можно переопределять переменными окружения, заменяя `:` на `__`:
+Any setting can be overridden with an environment variable by replacing `:`
+with `__`, for example `Rac__TimeoutSeconds=60`. Configuration is read at
+startup; restart RasGate after changing it.
+
+## Docker Compose
+
+Copy the example environment file and fill in the key and RAC directory:
 
 ```bash
-export RasGate__ApiKey="your-secret-key"
-export Rac__TimeoutSeconds=60
+cp .env.example .env
 ```
+
+`RAC_HOST_PATH` must point to a directory containing the Linux `rac` binary and
+the libraries it needs. The directory is mounted read-only at `/opt/1c/rac`.
+
+```bash
+docker compose up --build --detach
+docker compose down
+```
+
+The container runs as a non-root user with a read-only root filesystem. Logs go
+to the `logs` volume and `/tmp` is backed by tmpfs. By default, port 5050 is
+published only on `127.0.0.1`.
 
 ## HTTP API
 
-| Метод и путь | Авторизация | Назначение |
-|---|---|---|
-| `GET /rasgate/status` | Не требуется | Имя и версия RasGate |
-| `GET /rac/status` | Не требуется | Доступность и версия RAC |
-| `POST /rac/execute` | `X-Api-Key` | Выполнение команды RAC |
+| Method | Path | Authentication | Purpose |
+|---|---|---|---|
+| `GET` | `/rasgate/status` | none | RasGate name and version |
+| `GET` | `/rac/status` | none | cached RAC availability and version |
+| `POST` | `/rac/execute` | `X-Api-Key` | run a RAC command |
 
-Тело запроса на выполнение:
+`/rac/status` always returns HTTP `200`; check `data.available` to learn whether
+RAC can be started. The probe has its own cache and does not consume a command
+execution slot.
+
+An execution request contains an array of arguments:
 
 ```json
 {
-  "arguments": [
-    "cluster",
-    "list",
-    "localhost:1545"
-  ]
+  "arguments": ["cluster", "list", "localhost:1545"]
 }
 ```
 
-Успешный ответ:
+A completed call looks like this:
 
 ```json
 {
   "success": true,
   "data": {
+    "outcome": "succeeded",
     "exitCode": 0,
     "standardOutput": "...",
     "standardError": "",
@@ -154,47 +206,25 @@ export Rac__TimeoutSeconds=60
 }
 ```
 
-`success: true` означает, что RasGate успешно выполнил HTTP-запрос. Результат самой команды RAC определяется по `exitCode`.
+`success` describes the HTTP operation, not the result of RAC. Read `outcome`,
+`exitCode`, and `timedOut` together:
 
-Основные ошибки:
+- `succeeded`: RAC exited with code 0;
+- `failed`: RAC returned a non-zero exit code;
+- `unknown`: RasGate cannot prove the external result.
 
-| HTTP-код | Код ошибки | Причина |
-|---|---|---|
-| `400` | `bad_request` или `validation_error` | Некорректный запрос |
-| `401` | `unauthorized` | API-ключ отсутствует или неверен |
-| `429` | `rac_capacity_exceeded` | Все слоты выполнения заняты |
-| `502` | `rac_output_limit_exceeded` | `stdout` или `stderr` превысил лимит |
-| `503` | `rac_unavailable` | Исполняемый файл RAC не удалось запустить |
+Do not automatically retry an `unknown` result, a disconnected request after
+process start, an output-limit failure, or a cleanup failure. The command may
+already have changed cluster state. RasGate does not retry commands and cannot
+provide exactly-once execution for arbitrary RAC operations.
 
-Каждый API-ответ содержит заголовок `X-Trace-Id`, который можно использовать для сопоставления запроса с серверными логами.
+Typical API errors are `400 bad_request`, `401 unauthorized`,
+`429 rac_capacity_exceeded`, `502 rac_output_limit_exceeded`,
+`502 rac_execution_outcome_unknown`, and `503 rac_unavailable`.
 
-## Безопасность
+Responses include `X-Trace-Id`, which can be used to find the matching server
+log entry. OpenAPI JSON is available at `/openapi/v1.json` in `Development`.
 
-- задавайте API-ключ через переменную окружения или другое хранилище секретов;
-- не передавайте ключ в query string и не сохраняйте его в системе контроля версий;
-- используйте HTTPS при доступе через сеть;
-- ограничивайте сетевой доступ к RasGate;
-- учитывайте, что endpoint’ы состояния не требуют авторизации.
+## License
 
-## Сборка и тестирование
-
-```bash
-make build
-make test
-make release
-```
-
-- `make build` — Release-сборка решения;
-- `make test` — unit- и integration-тесты;
-- `make release` — self-contained single-file архивы для Linux x64 и Windows x64.
-
-Дополнительные материалы:
-
-- [Отчёт о результатах нагрузочного тестирования](docs/load-testing-report.md);
-- [Нагрузочное и длительное тестирование](scripts/load/README.md);
-- [Postman collection](postman/RasGate.postman_collection.json);
-- [Postman environment](postman/RasGate.postman_environment.json).
-
-## Лицензия
-
-См. [LICENSE](LICENSE).
+See [LICENSE](LICENSE).
