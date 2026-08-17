@@ -130,6 +130,70 @@ The default bind address is localhost. If the service must be reachable over a
 network, change `Urls`, restrict the port with a firewall, and terminate TLS in
 RasGate or a trusted reverse proxy.
 
+### Validate configuration
+
+Check the configuration without opening an HTTP port or running RAC:
+
+```bash
+./RasGate.Web --validate-config
+```
+
+The command returns `0` when the configuration is valid and a nonzero exit code
+otherwise. The API key is never printed.
+
+## Run as a service
+
+The Windows and Linux archives include service installation scripts. You can
+still run the same executable from a console when needed.
+
+### Windows service
+
+1. Extract the Windows archive to its permanent directory, for example
+   `C:\Program Files\RasGate`.
+2. Configure `RasGate:ApiKey` and `Rac:ExecutablePath` in
+   `appsettings.json`.
+3. Open Windows PowerShell as Administrator in that directory.
+4. Run `.\install-service.ps1`.
+
+Check or restart the service:
+
+```powershell
+Get-Service -Name RasGate
+Restart-Service -Name RasGate
+Invoke-RestMethod http://127.0.0.1:5050/rasgate/status
+```
+
+Remove the service without deleting the configuration, logs, or application
+files:
+
+```powershell
+.\uninstall-service.ps1
+```
+
+### systemd service
+
+1. Extract the Linux archive and configure `appsettings.json`.
+2. Run `sudo ./install-service.sh`.
+
+The installer copies RasGate to `/opt/rasgate`, creates an unprivileged
+`rasgate` user, installs `rasgate.service`, and starts it.
+
+```bash
+systemctl status rasgate.service
+sudo systemctl restart rasgate.service
+journalctl -u rasgate.service -f
+curl http://127.0.0.1:5050/rasgate/status
+```
+
+Remove the service without deleting `/opt/rasgate`, its configuration, or logs:
+
+```bash
+sudo /opt/rasgate/uninstall-service.sh
+```
+
+The scripts do not install RAC or change firewall and TLS settings. RasGate
+keeps the address configured in `Urls`.
+
 ## Configuration
 
 | Setting | Default and allowed values |

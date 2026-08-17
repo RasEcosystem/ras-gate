@@ -129,6 +129,69 @@ curl \
 `Urls`, ограничьте порт сетевым экраном и настройте TLS в RasGate или на
 доверенном reverse-прокси.
 
+### Проверка конфигурации
+
+Проверить настройки без открытия HTTP-порта и запуска RAC:
+
+```bash
+./RasGate.Web --validate-config
+```
+
+Команда возвращает `0`, если настройки корректны, и ненулевой код при ошибке.
+API-ключ в вывод не попадает.
+
+## Запуск в качестве службы
+
+В архивах для Windows и Linux есть скрипты установки службы. При необходимости
+тот же исполняемый файл можно запускать вручную из консоли.
+
+### Служба Windows
+
+1. Распакуйте Windows-архив в постоянный каталог, например
+   `C:\Program Files\RasGate`.
+2. Настройте `RasGate:ApiKey` и `Rac:ExecutablePath` в
+   `appsettings.json`.
+3. Откройте Windows PowerShell от имени администратора в этом каталоге.
+4. Запустите `.\install-service.ps1`.
+
+Проверка и перезапуск службы:
+
+```powershell
+Get-Service -Name RasGate
+Restart-Service -Name RasGate
+Invoke-RestMethod http://127.0.0.1:5050/rasgate/status
+```
+
+Удалить службу, не затрагивая настройки, логи и файлы приложения:
+
+```powershell
+.\uninstall-service.ps1
+```
+
+### Служба systemd
+
+1. Распакуйте Linux-архив и настройте `appsettings.json`.
+2. Запустите `sudo ./install-service.sh`.
+
+Установщик копирует RasGate в `/opt/rasgate`, создаёт непривилегированного
+пользователя `rasgate`, устанавливает `rasgate.service` и запускает службу.
+
+```bash
+systemctl status rasgate.service
+sudo systemctl restart rasgate.service
+journalctl -u rasgate.service -f
+curl http://127.0.0.1:5050/rasgate/status
+```
+
+Удалить службу, не затрагивая `/opt/rasgate`, настройки и логи:
+
+```bash
+sudo /opt/rasgate/uninstall-service.sh
+```
+
+Скрипты не устанавливают RAC и не меняют настройки сетевого экрана или TLS.
+RasGate использует адрес из параметра `Urls`.
+
 ## Конфигурация
 
 | Параметр | Значение по умолчанию и ограничения |

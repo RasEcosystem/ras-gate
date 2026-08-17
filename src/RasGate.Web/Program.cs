@@ -17,9 +17,44 @@ namespace RasGate.Web;
 
 public class Program
 {
-    public static void Main(string[] args)
+    public static int Main(string[] args)
     {
-        var builder = WebApplication.CreateBuilder(args);
+        var validateConfiguration =
+            ConfigurationValidator.IsRequested(args);
+
+        try
+        {
+            using var app = BuildApplication(
+                ConfigurationValidator.RemoveSwitch(args));
+
+            if (validateConfiguration)
+                return ConfigurationValidator.Validate(
+                    app.Services,
+                    Console.Out,
+                    Console.Error);
+
+            RunApplication(app);
+
+            return 0;
+        }
+        catch (Exception exception) when (validateConfiguration)
+        {
+            return ConfigurationValidator.ReportStartupFailure(
+                exception,
+                Console.Error);
+        }
+    }
+
+    private static WebApplication BuildApplication(string[] args)
+    {
+        var builder = CreateWebApplicationBuilder(args);
+
+        builder.Host.UseWindowsService(options =>
+        {
+            options.ServiceName = "RasGate";
+        });
+
+        builder.Host.UseSystemd();
 
         builder.Host.UseSerilog((context, services, configuration) =>
         {
@@ -57,6 +92,22 @@ public class Program
         app.ConfigureLogging();
         app.ConfigurePipeline();
 
+        return app;
+    }
+
+    internal static WebApplicationBuilder CreateWebApplicationBuilder(
+        string[] args)
+    {
+        return WebApplication.CreateBuilder(
+            new WebApplicationOptions
+            {
+                Args = args,
+                ContentRootPath = AppContext.BaseDirectory
+            });
+    }
+
+    private static void RunApplication(WebApplication app)
+    {
         var logger = app.Services
             .GetRequiredService<ILogger<Program>>();
 

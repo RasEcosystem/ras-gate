@@ -1,0 +1,25 @@
+[Unit]
+Description=RasGate HTTP gateway for 1C:Enterprise RAC
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=notify
+User=rasgate
+Group=rasgate
+WorkingDirectory=/opt/rasgate
+ExecStart=/opt/rasgate/RasGate.Web
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=90s
+KillSignal=SIGTERM
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/rasgate/logs
+UMask=0027
+Environment=DOTNET_NOLOGO=true
+
+[Install]
+WantedBy=multi-user.target
